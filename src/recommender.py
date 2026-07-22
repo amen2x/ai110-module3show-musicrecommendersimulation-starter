@@ -45,7 +45,7 @@ class Recommender:
     def __init__(self, songs: List[Song]):
         self.songs = songs
 
-    def recommend(self, user: UserProfile, k: int = 5) -> List[Song]:
+    def recommend(self, user: UserProfile, k: int = 5, weights: Optional[Dict[str, float]] = None) -> List[Song]:
         user_prefs = {
             "genre": user.favorite_genre,
             "mood": user.favorite_mood,
@@ -63,7 +63,7 @@ class Recommender:
                 "danceability": song.danceability,
                 "acousticness": song.acousticness,
             }
-            score, reasons = score_song(user_prefs, song_dict)
+            score, reasons = score_song(user_prefs, song_dict, weights=weights)
             scored_songs.append((song, score, reasons))
 
         scored_songs.sort(key=lambda item: item[1], reverse=True)
@@ -143,9 +143,9 @@ def _get_pref(user_prefs: Dict[str, Any], key: str, default: Any = None) -> Any:
     return default
 
 
-def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float, List[str]]:
+def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any], weights: Optional[Dict[str, float]] = None) -> Tuple[float, List[str]]:
     """Score a single song against a user profile and return reasons."""
-    weights = {
+    effective_weights = {
         "genre": 0.35,
         "mood": 0.25,
         "energy": 0.15,
@@ -154,6 +154,8 @@ def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float,
         "danceability": 0.04,
         "acousticness": 0.03,
     }
+    if weights:
+        effective_weights.update(weights)
 
     reasons: List[str] = []
     score = 0.0
@@ -161,21 +163,21 @@ def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float,
     preferred_genre = str(_get_pref(user_prefs, "genre", "")).lower()
     song_genre = str(song.get("genre", "")).lower()
     genre_match = 1.0 if preferred_genre and preferred_genre == song_genre else 0.0
-    score += genre_match * weights["genre"]
+    score += genre_match * effective_weights["genre"]
     if genre_match:
         reasons.append("matched genre")
 
     preferred_mood = str(_get_pref(user_prefs, "mood", "")).lower()
     song_mood = str(song.get("mood", "")).lower()
     mood_match = 1.0 if preferred_mood and preferred_mood == song_mood else 0.0
-    score += mood_match * weights["mood"]
+    score += mood_match * effective_weights["mood"]
     if mood_match:
         reasons.append("matched mood")
 
     preferred_energy = float(_get_pref(user_prefs, "energy", 0.5))
     song_energy = float(song.get("energy", 0.5))
     energy_similarity = max(0.0, 1.0 - abs(song_energy - preferred_energy))
-    score += energy_similarity * weights["energy"]
+    score += energy_similarity * effective_weights["energy"]
     if energy_similarity > 0.9:
         reasons.append("energy is close")
 
@@ -186,39 +188,39 @@ def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float,
         preferred_tempo_norm = 0.5
     song_tempo_norm = _normalize_tempo(float(song.get("tempo_bpm", 0.0)))
     tempo_similarity = max(0.0, 1.0 - abs(song_tempo_norm - preferred_tempo_norm))
-    score += tempo_similarity * weights["tempo"]
+    score += tempo_similarity * effective_weights["tempo"]
     if tempo_similarity > 0.9:
         reasons.append("tempo is close")
 
     preferred_valence = float(_get_pref(user_prefs, "valence", 0.5))
     song_valence = float(song.get("valence", 0.5))
     valence_similarity = max(0.0, 1.0 - abs(song_valence - preferred_valence))
-    score += valence_similarity * weights["valence"]
+    score += valence_similarity * effective_weights["valence"]
     if valence_similarity > 0.9:
         reasons.append("valence is close")
 
     preferred_dance = float(_get_pref(user_prefs, "danceability", 0.5))
     song_dance = float(song.get("danceability", 0.5))
     dance_similarity = max(0.0, 1.0 - abs(song_dance - preferred_dance))
-    score += dance_similarity * weights["danceability"]
+    score += dance_similarity * effective_weights["danceability"]
     if dance_similarity > 0.9:
         reasons.append("danceability is close")
 
     preferred_acoustic = float(_get_pref(user_prefs, "acousticness", 0.5))
     song_acoustic = float(song.get("acousticness", 0.5))
     acoustic_similarity = max(0.0, 1.0 - abs(song_acoustic - preferred_acoustic))
-    score += acoustic_similarity * weights["acousticness"]
+    score += acoustic_similarity * effective_weights["acousticness"]
     if acoustic_similarity > 0.9:
         reasons.append("acousticness is close")
 
     return round(score, 4), reasons
 
 
-def recommend_songs(user_prefs: Dict[str, Any], songs: List[Dict[str, Any]], k: int = 5) -> List[Tuple[Dict[str, Any], float, str]]:
+def recommend_songs(user_prefs: Dict[str, Any], songs: List[Dict[str, Any]], k: int = 5, weights: Optional[Dict[str, float]] = None) -> List[Tuple[Dict[str, Any], float, str]]:
     """Return the top-k scored songs with their scores and explanations."""
     scored_songs = []
     for song in songs:
-        score, reasons = score_song(user_prefs, song)
+        score, reasons = score_song(user_prefs, song, weights=weights)
         explanation = "; ".join(reasons) if reasons else "Basic match based on content features"
         scored_songs.append((song, score, explanation))
 
