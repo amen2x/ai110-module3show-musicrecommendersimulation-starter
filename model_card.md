@@ -4,48 +4,21 @@
 
 **VibeMatch 1.0**
 
-This is a simple, manually weighted content-based music recommender for a small classroom dataset.
+---
+
+## 2. Goal / Task
+
+This system recommends and ranks songs based on how closely their features match a user’s taste profile.
+
+It is a manually weighted content-based recommender. It is not a trained machine-learning model.
 
 ---
 
-## 2. Intended Use
+## 3. Data Used
 
-This recommender is designed to suggest songs that seem to match a user’s stated musical preferences. It is intended for educational use, small demonstrations, and simple experimentation with recommender ideas.
+The recommender uses 19 fictional songs from [data/songs.csv](data/songs.csv). The dataset was expanded from 10 songs by adding 9 more.
 
-It is appropriate for:
-
-- Showing how a recommender can turn song features into a ranked list
-- Comparing different taste profiles such as upbeat pop, calm chill, or high-energy rock
-- Explaining why a song was recommended
-
-It should not be relied on for:
-
-- Real-world music discovery at scale
-- Personalized recommendations for actual users without additional data
-- Decisions about music taste, identity, or long-term listening habits
-
----
-
-## 3. How the Model Works
-
-The recommender uses content-based filtering. It loads songs from the dataset and compares each song to a user profile using the song’s genre, mood, energy, tempo, valence, danceability, and acousticness.
-
-The system uses a weighted scoring rule. Genre and mood receive the largest weights because they are the strongest simple clues about a song’s general feel. The other features add smaller amounts of support. The score is higher when a song’s numerical features are closer to the user’s preferred values.
-
-The model also separates two steps:
-
-- Scoring: It calculates how well one song matches the user profile.
-- Ranking: It sorts all songs from highest score to lowest score and returns the best matches.
-
-Tempo is normalized to a 0–1 scale so it can be compared more fairly with other features that already range from 0 to 1. This makes the scoring logic easier to implement and explain.
-
-The system does not directly use the song ID, title, or artist in the score. Those fields help identify the song, but they do not describe its musical qualities in the same way that genre, mood, and the numeric audio-like features do.
-
----
-
-## 4. Data
-
-The recommender uses the dataset in [data/songs.csv](data/songs.csv). The catalog contains 10 songs with the following fields:
+The main features are:
 
 - genre
 - mood
@@ -55,42 +28,58 @@ The recommender uses the dataset in [data/songs.csv](data/songs.csv). The catalo
 - danceability
 - acousticness
 
-The dataset includes a small mix of styles such as pop, lofi, rock, ambient, jazz, synthwave, and indie pop. The moods include happy, chill, intense, relaxed, moody, and focused.
+ID, title, and artist are used for identification and display. They are not used directly in the scoring rule.
 
-This dataset is small and hand-built. It does not capture the full range of modern music, and it does not include real listening-history data, lyrics, vocals, or detailed production information.
-
----
-
-## 5. Strengths
-
-The system works reasonably well for the clearest cases. It gives strong results when the user profile and the song share the same genre and mood. For example:
-
-- An upbeat pop listener is well matched by songs such as Sunrise City and Gym Hero.
-- A calm/chill listener is well matched by Midnight Coding and Library Rain.
-- A high-energy rock listener is well matched by Storm Runner.
-
-The scoring rule also produces understandable explanations. This makes it easy for beginners to see why a song was recommended.
+This small fictional dataset does not represent the full variety of real music.
 
 ---
 
-## 6. Limitations and Bias
+## 4. Algorithm Summary
 
-This recommender has several important limitations. The dataset is small, with only 19 songs, so the recommendations are limited to a narrow catalog and can feel repetitive. The feature weights are manually chosen rather than learned from real user feedback, so the behavior is easy to explain but not necessarily optimal. The model uses exact matches for genre and mood, which makes it simpler but also means it can miss songs that are stylistically appropriate but do not share the exact label. Because genre and mood carry the largest weights, the recommender can repeatedly suggest similar songs and create a filter-bubble effect. It can also recommend songs that match numerically but not stylistically, especially when the user has conflicting preferences such as a strong genre request combined with an energy profile that points elsewhere.
+The system compares a user profile to each song and gives the song a final score.
+
+Genre and mood use exact matching. A match gives full credit, and a mismatch gives no credit for that feature.
+
+Numerical features receive higher similarity when they are closer to the user’s target value. Tempo is normalized before comparison so it can be compared fairly with the other numeric features.
+
+The feature weights are:
+
+- genre: 0.35
+- mood: 0.25
+- energy: 0.15
+- tempo: 0.10
+- valence: 0.08
+- danceability: 0.04
+- acousticness: 0.03
+
+Each song receives one score. The songs are sorted from highest score to lowest score. The top-k songs are returned with short explanations.
 
 ---
 
-## 7. Evaluation
+## 5. Observed Behavior / Biases
 
-I evaluated the recommender by testing three main profiles and one adversarial profile:
+Genre and mood can dominate the results. This can push the recommender toward similar songs and reduce discovery.
+
+The system may create filter bubbles. Similar songs can appear repeatedly in the top results.
+
+Songs can match numerically without matching stylistically. Exact matching also does not recognize related genres or moods.
+
+The small dataset affects variety. Manually selected weights also reflect human assumptions. Conflicting preferences can produce unexpected results.
+
+---
+
+## 6. Evaluation Process
+
+I tested the recommender with four profiles:
 
 - High-Energy Pop
 - Calm Chill
 - High-Energy Rock
-- Adversarial Conflicting
+- An adversarial profile with conflicting preferences
 
-### Main profile results
+I compared the top five recommendations for each profile.
 
-High-Energy Pop:
+### High-Energy Pop
 
 ```text
 Top recommendations:
@@ -101,7 +90,7 @@ Top recommendations:
 - Midnight Streets | Score: 0.3474 | Reasons: danceability is close; acousticness is close
 ```
 
-Calm Chill:
+### Calm Chill
 
 ```text
 Top recommendations:
@@ -112,7 +101,7 @@ Top recommendations:
 - Coffee Shop Stories | Score: 0.3766 | Reasons: energy is close; danceability is close; acousticness is close
 ```
 
-High-Energy Rock:
+### High-Energy Rock
 
 ```text
 Top recommendations:
@@ -123,9 +112,7 @@ Top recommendations:
 - Signal Bloom | Score: 0.3349 | Reasons: danceability is close
 ```
 
-### Adversarial profile results
-
-Adversarial Conflicting:
+### Adversarial profile
 
 ```text
 Top recommendations:
@@ -136,47 +123,59 @@ Top recommendations:
 - Gym Hero | Score: 0.3364 | Reasons: energy is close; tempo is close
 ```
 
-The adversarial profile revealed that the model can still produce sensible results when the user’s requested genre and mood conflict with a very different energy profile. In this case, Signal Bloom ranked first because it matched the requested alternative genre exactly, while Winter Glass ranked second because it matched the requested sad mood exactly. The other songs were boosted by shared energy or tempo values.
+The recommendations felt accurate for the strongest matches. Sunrise City did well for High-Energy Pop, Library Rain did well for Calm Chill, and Storm Runner did well for High-Energy Rock.
 
-### What felt accurate
+One surprising result was Gym Hero appearing for the rock profile. Its energy and danceability helped it score well even though it was not a rock song.
 
-The recommendations felt accurate for the clear matches. High-Energy Pop ranked Sunrise City first, Calm Chill ranked Library Rain first, and High-Energy Rock ranked Storm Runner first. Those results matched the intended genre and mood well.
+I also ran a temporary weight experiment. I reduced genre weight from 0.35 to 0.175 and increased energy weight from 0.15 to 0.30. The temporary weights added to 0.975, so the raw maximum score changed slightly, but songs could still be ranked. High-energy songs became more competitive. I restored the original weights after the experiment.
 
-A surprising result was that Gym Hero appeared in the top results for the rock profile. Its high energy and strong danceability helped it score well even though its genre was pop, which shows the model can overvalue numeric similarity over genre differences.
-
-### Why one song ranked first using the weights
-
-Storm Runner ranked first for the High-Energy Rock profile because it matched both the requested genre and mood exactly. With the original weights, genre and mood together contribute 0.60 of the total score, so an exact match on both features is very powerful. Its energy and tempo also matched closely, which pushed the final score even higher.
-
-### Temporary weight experiment
-
-I also tested a temporary weight change where genre was reduced from 0.35 to 0.175 and energy was increased from 0.15 to 0.30. The temporary weights summed to 0.975, so the maximum raw score changed slightly, but songs could still be ranked and compared normally. The biggest effect was that energy-heavy songs became more competitive, especially for profiles that valued intensity or movement over exact genre matching.
-
-### Plain-language comparisons
-
-- High-Energy Pop compared with Calm Chill: the pop profile favored songs with brighter energy, happier mood, and more upbeat tempo, while the chill profile favored lower energy, calmer mood, and more acoustic qualities.
-- High-Energy Pop compared with High-Energy Rock: both profiles liked high energy, but the pop profile favored happier mood and more upbeat valence, while the rock profile favored intense mood and a stronger rock-style match.
-- Calm Chill compared with High-Energy Rock: these profiles diverged most strongly in genre, mood, and acousticness. The chill profile preferred lower-energy, more acoustic songs, while the rock profile preferred higher-energy and more intense tracks.
+The plain-language comparisons were also useful. High-Energy Pop and Calm Chill split mainly on energy, mood, tempo, and acousticness. High-Energy Pop and High-Energy Rock shared high energy, but the pop profile favored happier mood and brighter valence. Calm Chill and High-Energy Rock diverged most strongly in genre, mood, and acousticness.
 
 The project also includes 2 tests, and the current implementation passed them.
 
 ---
 
-## 8. Future Work
+## 7. Intended Use
 
-Several improvements would make this system more useful and less repetitive.
+This system is appropriate for:
 
-- Add more songs and more genres to the catalog.
-- Learn feature weights from user feedback instead of using hand-picked values.
-- Add diversity to the ranking so the top results do not all look too similar.
-- Use listening history, skips, replays, and likes if available.
-- Combine content-based filtering with collaborative filtering to improve discovery and personalization.
+- classroom learning
+- showing how content-based recommendation works
+- practicing scoring, ranking, testing, and documentation
+- small fictional music catalogs
 
 ---
 
-## 9. Personal Reflection
+## 8. Non-Intended Use
 
-This project taught me that recommendation systems are really about turning simple data into useful predictions. I learned that genre and mood are very helpful signals, but numeric features such as energy and tempo also matter for how a song feels.
+This system should not be used for:
 
-The biggest challenge was balancing simplicity with usefulness. The current system is easy to explain, but it is also limited. Testing multiple profiles helped show where the system works well and where it can be too narrow or too dependent on a few features. With more time, I would improve the ranking with diversity and add more data so the recommendations could feel more realistic and less repetitive.
+- real commercial music recommendations
+- making claims about a person’s full musical identity
+- high-stakes decisions
+- recommendations that require real listening history or large-scale user behavior
+- replacing real streaming-platform recommendation systems
+
+---
+
+## 9. Ideas for Improvement
+
+Several improvements would make this system more useful.
+
+- Add more songs, artists, genres, and moods.
+- Learn weights from user feedback instead of choosing them manually.
+- Add diversity rules so the results are less repetitive.
+- Use listening history, skips, likes, and replays.
+- Combine content-based filtering with collaborative filtering.
+- Recognize related genres and moods instead of requiring exact matches.
+
+---
+
+## 10. Personal Reflection
+
+My biggest learning moment was seeing how raw song features and user preferences can be turned into scores and rankings. It was helpful to watch the math turn simple inputs into something that looked personal.
+
+AI tools helped me brainstorm formulas, generate diverse song ideas, explain the code, and point out possible bias. I still double-checked the math, the weights, the CSV formatting, the terminal output, the Git changes, and the test results.
+
+What surprised me most was how a simple weighted formula could feel personal at all. I also saw that small weight changes could noticeably change the rankings. Next, I would try collaborative filtering, listening history, learned weights, larger datasets, and diversity-aware rankings.
 
