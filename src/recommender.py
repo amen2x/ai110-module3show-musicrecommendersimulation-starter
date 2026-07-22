@@ -90,10 +90,7 @@ class Recommender:
 
 
 def load_songs(csv_path: str) -> List[Dict[str, Any]]:
-    """
-    Loads songs from a CSV file.
-    Required by src/main.py
-    """
+    """Load songs from a CSV file into a list of dictionaries."""
     path = Path(csv_path)
     songs: List[Dict[str, Any]] = []
 
@@ -120,7 +117,7 @@ def load_songs(csv_path: str) -> List[Dict[str, Any]]:
 
 
 def _normalize_tempo(tempo_bpm: float, min_bpm: float = 50.0, max_bpm: float = 200.0) -> float:
-    """Maps tempo from bpm to a 0-1 scale for simple scoring."""
+    """Map tempo from BPM to a 0-1 scale for simple scoring."""
     if max_bpm <= min_bpm:
         return 0.5
     value = (tempo_bpm - min_bpm) / (max_bpm - min_bpm)
@@ -128,8 +125,13 @@ def _normalize_tempo(tempo_bpm: float, min_bpm: float = 50.0, max_bpm: float = 2
 
 
 def _get_pref(user_prefs: Dict[str, Any], key: str, default: Any = None) -> Any:
+    """Return a preference value while supporting common alternate key names."""
     if key in user_prefs:
         return user_prefs[key]
+    if key == "tempo" and "tempo_bpm" in user_prefs:
+        return user_prefs["tempo_bpm"]
+    if key == "tempo_bpm" and "tempo" in user_prefs:
+        return user_prefs["tempo"]
     if key == "genre" and "favorite_genre" in user_prefs:
         return user_prefs["favorite_genre"]
     if key == "mood" and "favorite_mood" in user_prefs:
@@ -142,10 +144,7 @@ def _get_pref(user_prefs: Dict[str, Any], key: str, default: Any = None) -> Any:
 
 
 def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float, List[str]]:
-    """
-    Scores a single song against user preferences.
-    Required by recommend_songs() and src/main.py
-    """
+    """Score a single song against a user profile and return reasons."""
     weights = {
         "genre": 0.35,
         "mood": 0.25,
@@ -216,10 +215,7 @@ def score_song(user_prefs: Dict[str, Any], song: Dict[str, Any]) -> Tuple[float,
 
 
 def recommend_songs(user_prefs: Dict[str, Any], songs: List[Dict[str, Any]], k: int = 5) -> List[Tuple[Dict[str, Any], float, str]]:
-    """
-    Functional implementation of the recommendation logic.
-    Required by src/main.py
-    """
+    """Return the top-k scored songs with their scores and explanations."""
     scored_songs = []
     for song in songs:
         score, reasons = score_song(user_prefs, song)

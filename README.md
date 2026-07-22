@@ -123,16 +123,25 @@ The current project has 2 tests and they pass in the current environment.
 
 ## Sample Recommendation Output
 
-Example output for an upbeat pop profile:
+Example output for the current upbeat pop profile on the 19-song dataset:
 
 ```text
-User profile: genre=pop, mood=happy, energy=0.8
-Top recommendations:
-1. Sunrise City - Score: 0.9875
-Because: matched genre; matched mood; energy is close; tempo is close; valence is close; danceability is close; acousticness is close
+Loaded songs: 19
+User profile:
+- genre: pop
+- mood: happy
+- energy: 0.8
+- tempo_bpm: 115
+- valence: 0.8
+- danceability: 0.8
+- acousticness: 0.2
 
-2. Gym Hero - Score: 0.7057
-Because: matched genre; valence is close; danceability is close
+Top recommendations:
+- Sunrise City | Score: 0.9875 | Reasons: matched genre; matched mood; energy is close; tempo is close; valence is close; danceability is close; acousticness is close
+- Rooftop Lights | Score: 0.8544 | Reasons: matched genre; matched mood; energy is close; tempo is close; valence is close; danceability is close
+- Gym Hero | Score: 0.7057 | Reasons: matched genre; valence is close; danceability is close
+- Neon Skyline | Score: 0.6551 | Reasons: matched mood; energy is close; tempo is close; danceability is close; acousticness is close
+- Midnight Streets | Score: 0.6406 | Reasons: matched mood; energy is close; tempo is close; valence is close; danceability is close; acousticness is close
 ```
 
 ---
